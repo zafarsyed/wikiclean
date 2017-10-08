@@ -61,7 +61,7 @@ public class DumpEnWikiToParsedSentences {
         .withTitle(false).withFooter(false).build();
 
     PrintWriter writer = new PrintWriter(args.output, "UTF-8");
-    WikipediaArticlesDump wikipedia = new WikipediaArticlesDump(args.input);
+    WikipediaArticlesDump wikipedia = new WikipediaArticlesDump(args.input, null);
 
     wikipedia.stream()
         .filter(page -> !page.contains("<ns>") || page.contains("<ns>0</ns>"))

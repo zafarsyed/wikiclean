@@ -31,7 +31,7 @@ public class WikipediaArticlesDumpTest {
   @Test(expected = NoSuchElementException.class)
   public void testReadArticles1() throws IOException {
     WikipediaArticlesDump wikipedia =
-        new WikipediaArticlesDump(new File("src/test/resources/article-stubs.xml.bz2"));
+        new WikipediaArticlesDump(new File("src/test/resources/article-stubs.xml.bz2"), null);
 
     WikiClean cleaner = new WikiClean.Builder().withLanguage(WikiClean.WikiLanguage.EN)
         .withTitle(false).withFooter(false).build();
