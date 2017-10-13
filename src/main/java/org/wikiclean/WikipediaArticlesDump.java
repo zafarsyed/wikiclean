@@ -53,250 +53,250 @@ import java.util.stream.StreamSupport;
  * Object for reading Wikipedia articles from a bz2-compressed dump file.
  */
 public class WikipediaArticlesDump implements Iterable<String> {
-  private static final int DEFAULT_STRINGBUFFER_CAPACITY = 1024;
+	private static final int DEFAULT_STRINGBUFFER_CAPACITY = 1024;
 
-  private final BufferedReader reader;
-  private final FileInputStream stream;
-  private final String outputFile;
+	private final BufferedReader reader;
+	private final FileInputStream stream;
+	private final String outputFile;
+	private String wikiTitle;
+	private String wikiArticle;
+	private long wikiID;
+	static int x = 0;
 
-  /**
-   * Class constructor.
-   * @param file path to dump file
-   * @throws IOException if any file-related errors are encountered
-   */
-  public WikipediaArticlesDump(File file, String outputFile) throws IOException {
-    stream = new FileInputStream(file);
-    byte[] ignoreBytes = new byte[2];
-    stream.read(ignoreBytes); // "B", "Z" bytes from commandline tools
-    reader = new BufferedReader(new InputStreamReader(new CBZip2InputStream(
-            new BufferedInputStream(stream)), "UTF8"));
-    this.outputFile = outputFile;
-  }
+	/**
+	 * Class constructor.
+	 * @param file path to dump file
+	 * @throws IOException if any file-related errors are encountered
+	 */
+	public WikipediaArticlesDump(File file, String outputFile) throws IOException {
+		stream = new FileInputStream(file);
+		byte[] ignoreBytes = new byte[2];
+		stream.read(ignoreBytes); // "B", "Z" bytes from commandline tools
+		reader = new BufferedReader(new InputStreamReader(new CBZip2InputStream(
+				new BufferedInputStream(stream)), "UTF8"));
+		this.outputFile = outputFile;
+	}
 
-  /**
-   * Provides an iterator over Wikipedia articles.
-   * @return an iterator over Wikipedia articles
-   */
-  public Iterator<String> iterator() {
-    return new Iterator<String>() {
-      private String nextArticle = null;
+	/**
+	 * Provides an iterator over Wikipedia articles.
+	 * @return an iterator over Wikipedia articles
+	 */
+	public Iterator<String> iterator() {
+		return new Iterator<String>() {
+			private String nextArticle = null;
 
-      public boolean hasNext() {
-        if (nextArticle != null) {
-          return true;
-        }
+			public boolean hasNext() {
+				if (nextArticle != null) {
+					return true;
+				}
 
-        try {
-          nextArticle = readNext();
-        } catch (IOException e) {
-          return false;
-        }
+				try {
+					nextArticle = readNext();
+				} catch (IOException e) {
+					return false;
+				}
 
-        return nextArticle!= null;
-      }
+				return nextArticle!= null;
+			}
 
-      public String next() {
-        // If current article is null, try to advance.
-        if (nextArticle == null) {
-          try {
-            nextArticle = readNext();
-            // If we advance and and still get a null, then we're done.
-            if (nextArticle == null) {
-              throw new NoSuchElementException();
-            }
-          } catch (IOException e) {
-            throw new NoSuchElementException();
-          }
-        }
+			public String next() {
+				// If current article is null, try to advance.
+				if (nextArticle == null) {
+					try {
+						nextArticle = readNext();
+						// If we advance and and still get a null, then we're done.
+						if (nextArticle == null) {
+							throw new NoSuchElementException();
+						}
+					} catch (IOException e) {
+						throw new NoSuchElementException();
+					}
+				}
 
-        String article = nextArticle;
-        nextArticle = null;
-        return article;
-      }
+				String article = nextArticle;
+				nextArticle = null;
+				return article;
+			}
 
-      public void remove() {
-        throw new UnsupportedOperationException();
-      }
+			public void remove() {
+				throw new UnsupportedOperationException();
+			}
 
-      private String readNext() throws IOException {
-        String s;
-        StringBuilder sb = new StringBuilder(DEFAULT_STRINGBUFFER_CAPACITY);
+			private String readNext() throws IOException {
+				String s;
+				StringBuilder sb = new StringBuilder(DEFAULT_STRINGBUFFER_CAPACITY);
 
-        while ((s = reader.readLine()) != null) {
-          if (s.endsWith("<page>"))
-            break;
-        }
+				while ((s = reader.readLine()) != null) {
+					if (s.endsWith("<page>"))
+						break;
+				}
 
-        if (s == null) {
-          stream.close();
-          reader.close();
-          return null;
-        }
+				if (s == null) {
+					stream.close();
+					reader.close();
+					return null;
+				}
 
-        sb.append(s).append("\n");
+				sb.append(s).append("\n");
 
-        while ((s = reader.readLine()) != null) {
-          sb.append(s).append("\n");
+				while ((s = reader.readLine()) != null) {
+					sb.append(s).append("\n");
 
-          if (s.endsWith("</page>"))
-            break;
-        }
+					if (s.endsWith("</page>"))
+						break;
+				}
 
-        return sb.toString();
-      }
-    };
-  }
+				return sb.toString();
+			}
+		};
+	}
 
-  /**
-   * Provides a stream of Wikipedia articles.
-   * @return a stream of Wikipedia articles
-   */
-  public Stream<String> stream() {
-    return StreamSupport.stream(this.spliterator(), false);
-  }
+	/**
+	 * Provides a stream of Wikipedia articles.
+	 * @return a stream of Wikipedia articles
+	 */
+	public Stream<String> stream() {
+		return StreamSupport.stream(this.spliterator(), false);
+	}
 
-  private static final class Args {
-    @Option(name = "-input", metaVar = "[path]", required = true, usage = "input path")
-    File input;
+	private static final class Args {
+		@Option(name = "-input", metaVar = "[path]", required = true, usage = "input path")
+		File input;
 
-    @Option(name = "-lang", metaVar = "[lang]", usage = "two-letter language code")
-    String lang = "en";
-  }
+		@Option(name = "-lang", metaVar = "[lang]", usage = "two-letter language code")
+		String lang = "en";
+	}
 
-  /**
-   * Simple program prints out all cleaned articles.
-   * @param argv command-line argument
-   * @throws Exception if any errors are encountered
-   */
-  public static void main(String[] argv) throws Exception, IOException {
-	long start = System.currentTimeMillis();
-    final Args args = new Args();
-    CmdLineParser parser = new CmdLineParser(args, ParserProperties.defaults().withUsageWidth(100));
+	/**
+	 * Simple program prints out all cleaned articles.
+	 * @param argv command-line argument
+	 * @throws Exception if any errors are encountered
+	 */
+	public static void main(String[] argv) throws Exception, IOException {
+		long start = System.currentTimeMillis();
+		final Args args = new Args();
+		CmdLineParser parser = new CmdLineParser(args, ParserProperties.defaults().withUsageWidth(100));
 
-    try {
-      parser.parseArgument(argv);
-    } catch (CmdLineException e) {
-      System.err.println(e.getMessage());
-      parser.printUsage(System.err);
-      System.exit(-1);
-    }
-
-    WikiLanguage lang = WikiLanguage.EN;
-    if (args.lang.equalsIgnoreCase("de")) {
-      lang = WikiLanguage.DE;
-    } else  if (args.lang.equalsIgnoreCase("zh")) {
-      lang = WikiLanguage.ZH;
-    }
-
-    PrintStream out = new PrintStream(System.out, true, "UTF-8");
-    WikiClean cleaner = new WikiClean.Builder().withLanguage(lang).build();
-
-    WikipediaArticlesDump wikipedia = new WikipediaArticlesDump(args.input,"E://Wikipedia_articles//Wikipedia_cleanXML//enwiki-20171001-pages-meta-current1.xml-p10p30303.json");
-    //RestClient restClient = RestClient.builder(new HttpHost("131.234.28.254", 9200, "http")).build();
-    AtomicInteger cnt = new AtomicInteger();
-    FileWriter fw = new FileWriter(wikipedia.outputFile);
-    wikipedia.stream()
-        // See https://en.wikipedia.org/wiki/Wikipedia:Namespace
-        .filter(s -> !s.contains("<ns>") || s.contains("<ns>0</ns>"))
-        .forEach(s -> {
-          //out.println("Title = " + cleaner.getTitle(s));
-          //out.println("Id = " + cleaner.getId(s));
-          //out.println(cleaner.clean(s) + "\n\n#################################\n");
-          ObjectMapper mapper = new ObjectMapper();
-  			ObjectNode objectNode1 = mapper.createObjectNode();
-          objectNode1.put("Title", cleaner.getTitle(s));
-          objectNode1.put("Article", cleaner.clean(s));
-          objectNode1.put("URL", "https://en.wikipedia.org/wiki/"+cleaner.getTitle(s).replace(" ", "_"));
-          
-          try {
-        	if(!(cleaner.clean(s).contains("#REDIRECT")))
-        	{
-        		fw.write("{\"index\": {\"_id\": "+cleaner.getId(s)+"}}" + "\n");
-        		fw.write(objectNode1.toString() + "\n");
-        	}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		try {
+			parser.parseArgument(argv);
+		} catch (CmdLineException e) {
+			System.err.println(e.getMessage());
+			parser.printUsage(System.err);
+			System.exit(-1);
 		}
-          
-          //System.out.println(cleaner.getTitle(s));
-          //System.out.println(cleaner.clean(s));
-//          HttpEntity entity = null;
-//		try {
-//			entity = new NStringEntity(
-//						mapper.writeValueAsString(objectNode1), ContentType.APPLICATION_JSON);
-//		} catch (JsonProcessingException e1) {
-//			// TODO Auto-generated catch block
-//			e1.printStackTrace();
-//		}
-//          Response indexResponse;  
-//		try {
-//			indexResponse = restClient.performRequest(
-//					"PUT",
-//					"/wiki/articles/"+cleaner.getId(s),
-//					Collections.<String, String>emptyMap(),
-//					entity);
-//			System.out.println("File " +cleaner.getTitle(s)+" indexed");
-//		} catch (IOException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-          cnt.incrementAndGet();
-          System.out.println("Copied file "+cnt);
-          //System.out.println("Count "+cnt);
-          
-        });
-    
-    fw.flush();
-    fw.close();
 
-    out.println("Total of " + cnt + " articles read.");
-    System.out.println("Indexing " + cnt + "documents took " +(System.currentTimeMillis() - start));
-    out.close();
-  }
-  
-  public void createJsonfile() throws IOException
-  {
-	  WikiLanguage lang = WikiLanguage.EN;
+		WikiLanguage lang = WikiLanguage.EN;
+		if (args.lang.equalsIgnoreCase("de")) {
+			lang = WikiLanguage.DE;
+		} else  if (args.lang.equalsIgnoreCase("zh")) {
+			lang = WikiLanguage.ZH;
+		}
 
-	    PrintStream out = new PrintStream(System.out, true, "UTF-8");
-	    WikiClean cleaner = new WikiClean.Builder().withLanguage(lang).build();
+		PrintStream out = new PrintStream(System.out, true, "UTF-8");
+		WikiClean cleaner = new WikiClean.Builder().withLanguage(lang).build();
 
-	    //WikipediaArticlesDump wikipedia = new WikipediaArticlesDump(args.input);
-	    //RestClient restClient = RestClient.builder(new HttpHost("131.234.28.254", 9200, "http")).build();
-	    AtomicInteger cnt = new AtomicInteger();
-	    FileWriter fw = new FileWriter(new File(this.outputFile));
-	    this.stream()
-	        // See https://en.wikipedia.org/wiki/Wikipedia:Namespace
-	        .filter(s -> !s.contains("<ns>") || s.contains("<ns>0</ns>"))
-	        .forEach(s -> {
-	          //out.println("Title = " + cleaner.getTitle(s));
-	          //out.println("Id = " + cleaner.getId(s));
-	          //out.println(cleaner.clean(s) + "\n\n#################################\n");
-	          ObjectMapper mapper = new ObjectMapper();
-	  			ObjectNode objectNode1 = mapper.createObjectNode();
-	          objectNode1.put("Title", cleaner.getTitle(s));
-	          objectNode1.put("Article", cleaner.clean(s));
-	          objectNode1.put("URL", "https://en.wikipedia.org/wiki/"+cleaner.getTitle(s).replace(" ", "_"));
-	          
-	          try {
-	        	if(!(cleaner.clean(s).contains("#REDIRECT")))
-	        	{
-	        		fw.write("{\"index\": {\"_id\": "+cleaner.getId(s)+"}}" + "\n");
-	        		fw.write(objectNode1.toString() + "\n");
-	        	}
+		WikipediaArticlesDump wikipedia = new WikipediaArticlesDump(args.input,"E://Wikipedia_articles//Wikipedia_cleanXML//enwiki-20171001-pages-meta-current4.xml-p200511p352689.json");
+		//RestClient restClient = RestClient.builder(new HttpHost("131.234.28.254", 9200, "http")).build();
+		AtomicInteger cnt = new AtomicInteger();
+		FileWriter fw = new FileWriter(wikipedia.outputFile);
+		ObjectMapper mapper = new ObjectMapper();
+		ObjectNode objectNode1 = mapper.createObjectNode();
+		
+		wikipedia.stream()
+		.filter(s -> !s.contains("<ns>") || s.contains("<ns>0</ns>"))
+		.forEach(s -> {
+			wikipedia.wikiTitle = cleaner.getTitle(s);
+			wikipedia.wikiArticle = cleaner.clean(s);
+			wikipedia.wikiID = Integer.parseInt(cleaner.getId(s));
+			try {
+				if(!(wikipedia.wikiArticle.startsWith("#REDIRECT") || wikipedia.wikiArticle.startsWith("#redirect") || wikipedia.wikiArticle.startsWith("#Redirect") || wikipedia.wikiArticle.isEmpty()))
+				{
+					objectNode1.put("Title", wikipedia.wikiTitle);
+					objectNode1.put("Article", wikipedia.wikiArticle);
+					objectNode1.put("URL", "https://en.wikipedia.org/wiki/"+wikipedia.wikiTitle.replace(" ", "_"));
+					fw.write("{\"index\": {\"_id\":"+wikipedia.wikiID+"}}" + "\n");
+					fw.write(objectNode1.toString() + "\n");
+				}
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-	          cnt.incrementAndGet();
-	          System.out.println("Copied file "+cnt);
-	          //System.out.println("Count "+cnt);
-	          
-	        });
-	    
-	    fw.flush();
-	    fw.close();
-	    out.close();
-	  }
-  }
+
+			//System.out.println(cleaner.getTitle(s));
+			//System.out.println(cleaner.clean(s));
+			//          HttpEntity entity = null;
+			//		try {
+			//			entity = new NStringEntity(
+			//						mapper.writeValueAsString(objectNode1), ContentType.APPLICATION_JSON);
+			//		} catch (JsonProcessingException e1) {
+			//			// TODO Auto-generated catch block
+			//			e1.printStackTrace();
+			//		}
+			//          Response indexResponse;  
+			//		try {
+			//			indexResponse = restClient.performRequest(
+			//					"PUT",
+			//					"/wiki/articles/"+cleaner.getId(s),
+			//					Collections.<String, String>emptyMap(),
+			//					entity);
+			//			System.out.println("File " +cleaner.getTitle(s)+" indexed");
+			//		} catch (IOException e) {
+			//			// TODO Auto-generated catch block
+			//			e.printStackTrace();
+			//		}
+			cnt.incrementAndGet();
+			System.out.println("Copied file "+cnt);
+			//System.out.println("Count "+cnt);
+
+		});
+
+		fw.flush();
+		fw.close();
+
+		out.println("Total of " + cnt + " articles read.");
+		System.out.println("Indexing " + cnt + "documents took " +(System.currentTimeMillis() - start));
+		System.out.println("Redirected docs "+x);
+		out.close();
+	}
+
+	public void createJsonfile() throws IOException
+	{
+		WikiLanguage lang = WikiLanguage.EN;
+		PrintStream out = new PrintStream(System.out, true, "UTF-8");
+		WikiClean cleaner = new WikiClean.Builder().withLanguage(lang).build();
+		AtomicInteger cnt = new AtomicInteger();
+		FileWriter fw = new FileWriter(new File(this.outputFile));
+		ObjectMapper mapper = new ObjectMapper();
+		ObjectNode objectNode1 = mapper.createObjectNode();
+		this.stream().limit(2000)
+		.filter(s -> !s.contains("<ns>") || s.contains("<ns>0</ns>"))
+		.forEach(s -> {
+			this.wikiTitle = cleaner.getTitle(s);
+			this.wikiArticle = cleaner.clean(s);
+			this.wikiID = Integer.parseInt(cleaner.getId(s));
+			try {
+				if(!(this.wikiArticle.startsWith("#redirect") || this.wikiArticle.startsWith("#redirect") || this.wikiArticle.startsWith("#Redirect") || this.wikiArticle.isEmpty()))
+				{
+					objectNode1.put("Title", this.wikiTitle);
+					objectNode1.put("Article", this.wikiArticle);
+					objectNode1.put("URL", "https://en.wikipedia.org/wiki/"+this.wikiTitle.replace(" ", "_"));
+					fw.write("{\"index\": {\"_id\": "+this.wikiID+"}}" + "\n");
+					fw.write(objectNode1.toString() + "\n");
+				}
+				else
+				{
+					
+				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			cnt.incrementAndGet();
+			System.out.println("Copied file "+cnt);
+		});
+
+		fw.flush();
+		fw.close();
+		out.close();
+	}
+}
