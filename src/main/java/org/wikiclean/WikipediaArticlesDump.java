@@ -207,6 +207,9 @@ public class WikipediaArticlesDump implements Iterable<String> {
 		.forEach(s -> {
 			wikipedia.wikiTitle = cleaner.getTitle(s);
 			wikipedia.wikiArticle = cleaner.clean(s);
+			wikipedia.wikiArticle = wikipedia.wikiArticle.replace("\n", "");
+			wikipedia.wikiArticle = wikipedia.wikiArticle.replace("*", "");
+			wikipedia.wikiArticle = wikipedia.wikiArticle.replace("(; ", "(");
 			wikipedia.wikiID = Integer.parseInt(cleaner.getId(s));
 			try {
 				if(!(wikipedia.wikiArticle.startsWith("#REDIRECT") || wikipedia.wikiArticle.startsWith("#redirect") || wikipedia.wikiArticle.startsWith("#Redirect") || wikipedia.wikiArticle.isEmpty()))
